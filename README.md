@@ -2,7 +2,7 @@
 ## Mod for VRChat Build 1048
 
 ### Description
-The cyan outlines around pickupable objects overrender everything in the game, causing disorientation and lessened immersion. 
+The cyan outlines around pickupable objects overrender everything in the game, causing disorientation and lessened immersion.  
 This mod adds options to toggle off the outline around pickupable objects and the dashed line pointing to them.  
 
 ### Example MelonPreferences.cfg
@@ -14,19 +14,19 @@ Pref_DebugOutput     = false    # Enables debug output in the MelonLoader consol
 ```
 
 ### Dependencies
-UIExpansionKit by Knah [link](https://github.com/knah/VRCMods)
+UIExpansionKit by Knah [link](https://github.com/knah/VRCMods)  
 MelonLoader 0.3.0
 
 ### Build Info
-Place Assembly-CSharp.dll in Libs/
+Place Assembly-CSharp.dll in Libs/  
 UIExpansionKit is on the same folder level 
 
 #### Example Folder Hierarchy
-* ---Root Folder---
-  * UIExpansionKit
-  * NoOutlines
-    * Libs
-	  * Assembly-CSharp.dll
+* ---Root Folder---  
+  * UIExpansionKit  
+  * NoOutlines   
+    * Libs  
+	  * Assembly-CSharp.dll  
 
 ### Credits
 VRChat Modding Group
