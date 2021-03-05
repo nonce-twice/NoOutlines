@@ -19,6 +19,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\UIExpansionKit\UIExpansionKit.csproj" />
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     </ItemGroup>
 
     <ItemGroup>
@@ -26,6 +27,20 @@
         <SpecificVersion>false</SpecificVersion>
         <Private>false</Private>
         <HintPath>$(MsBuildThisFileDirectory)\..\Libs\Assembly-CSharp.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+    <ItemGroup>
+      <Reference Include="VRCSDKBase, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <SpecificVersion>false</SpecificVersion>
+        <Private>false</Private>
+        <HintPath>$(MsBuildThisFileDirectory)\..\Libs\VRCSDKBase.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+    <ItemGroup>
+      <Reference Include="VRCCore-Standalone, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null">
+        <SpecificVersion>false</SpecificVersion>
+        <Private>false</Private>
+        <HintPath>$(MsBuildThisFileDirectory)\..\Libs\VRCCore-Standalone.dll</HintPath>
       </Reference>
     </ItemGroup>
 

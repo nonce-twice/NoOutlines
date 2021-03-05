@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
-using UIExpansionKit.API;
 using MelonLoader;
 using UnityEngine;
-using VRC;
+using VRC.SDKBase;
+using Harmony;
+using System.Linq;
+using System.Reflection;
 
 namespace NoOutlines
 {
@@ -67,8 +69,8 @@ namespace NoOutlines
                 ApplyOutlineVisibilitySettings();
             }
 
-            // Wait for player to load to apply beam settings
-            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
+            // This might still throw an error if player is chaanging settings on world join and before their avatar loads
+            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings()); // Replaced with hook to OnAvatarInstantiated
         }
 
         private void ApplyOutlineVisibilitySettings()
@@ -114,20 +116,24 @@ namespace NoOutlines
 
         private IEnumerator WaitUntilPlayerIsLoadedToApplyTetherSettings()
         {
-            // Wait until player ref is valid
+            // Apply settings only when player is valid and tethers exist
             while(VRCPlayer.field_Internal_Static_VRCPlayer_0 == null)
             {
-                yield return null;
+                yield return new WaitForSeconds(0.2f);
             }
-            // This is a hack
-            // Wait more because you're probably still loading in
-            yield return new WaitForSeconds(10.0f);
-            // Apply settings only when player is valid and tethers exist
+            // Avatar is guaranteed to be loaded here
+            ApplyTetherSettings();
+        }
+
+        // Call only when player avatar is loaded in
+        private void ApplyTetherSettings()
+        {
             SetTetherReferences();
             if (ValidateTetherReferences())
             {
                 ApplyBeamVisibilitySettings();
             }
+            LogDebugMsg("Tether settings applied.");
         }
 
         private bool ValidateTetherReferences()
@@ -209,6 +215,38 @@ namespace NoOutlines
             }
             MelonLogger.Msg(msg);
         }
+
+        // Most/all of this section comes from DynamicBonesSafety mod by Ben
+        // https://github.com/BenjaminZehowlt/DynamicBonesSafety/
+        // Thanks to loukylor for pointing me in the right direction
+        #region HOOK_AVATAR_INSTANTIATED 
+
+        public override void VRChat_OnUiManagerInit()
+        {
+            MelonLogger.Msg("Hooking OnAvatarInstantiated");
+            HarmonyInstance harmonyInstance = HarmonyInstance.Create("NoOutlinesMod");
+            typeof(VRCPlayer).GetMethods().Where(m => m.Name.StartsWith("Method_Private_Void_GameObject_VRC_AvatarDescriptor_Boolean_") && !m.checkXref("Avatar is Ready, Initializing")).ToList()
+            .ForEach(m => harmonyInstance.Patch(m, postfix: new HarmonyMethod(typeof(NoOutlines).GetMethod("AvatarFinishedLoadingPostfix", BindingFlags.NonPublic))));
+        }
+
+        [HarmonyPostfix]
+        private void AvatarFinishedLoadingPostfix(VRCPlayer __instance, GameObject __0, VRC_AvatarDescriptor __1, bool __2)
+        {
+            if (__instance == null
+                || __0 == null
+                || __1 == null
+                || !__2)
+                return;
+
+            // Not local player
+            if (__instance != VRCPlayer.field_Internal_Static_VRCPlayer_0)
+                return;
+
+            LogDebugMsg("Avatar is loaded! Applying tether settings...");
+            // Apply tether settings here
+            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
+        }
+        #endregion
         
     }
 }
