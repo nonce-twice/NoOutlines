@@ -39,7 +39,6 @@ namespace NoOutlines
             MelonLogger.Msg("Initialized!");
         }
 
-
         // Skip over initial loading of (buildIndex, sceneName): [(0, "app"), (1, "ui")]
         public override void OnSceneWasLoaded(int buildIndex, string sceneName)
         {
@@ -70,7 +69,6 @@ namespace NoOutlines
                 ApplyOutlineVisibilitySettings();
             }
 
-            
             // This might still throw an error if player is chaanging settings on world join and before their avatar loads
             MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings()); // Replaced with hook to OnAvatarInstantiated
         }
