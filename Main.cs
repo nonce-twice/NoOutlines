@@ -16,6 +16,8 @@ namespace NoOutlines
         public bool Pref_DisableBeam = false;
         public bool Pref_DebugOutput = false;
 
+        private static bool avatarLoaded = false;
+
         private const string defaultHighlightMaterialName = "Hidden/VRChat/SelectionHighlight";
         private const string defaultHighlightShaderName = "Hidden/VRChat/SelectionHighlight";
         private const string replacementHighlightShaderName = "VRChat/Invisible"; 
@@ -46,7 +48,9 @@ namespace NoOutlines
             switch (buildIndex) {
                 case 0: 
                     break; 
-                case 1: 
+                case 1:
+                    // Probably loading in
+                    avatarLoaded = false;
                     break;  
                 default:
                     ApplyAllSettings();
@@ -61,15 +65,19 @@ namespace NoOutlines
 
         private void ApplyAllSettings()
         {
+            LogDebugMsg("Applying all settings");
             UpdatePreferences();
             ClearAllReferences(); // might be unnecessary to clear first
+
+            LogDebugMsg("Applying outline settings");
             SetHighlightsFXReferences();
             if (ValidateHighlightsFXReferences())
             {
                 ApplyOutlineVisibilitySettings();
             }
 
-            // This might still throw an error if player is chaanging settings on world join and before their avatar loads
+            LogDebugMsg("Applying tether settings");
+            LogDebugMsg(avatarLoaded ? "Avatar is loaded!" : "Avatar isn't loaded!");
             MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings()); // Replaced with hook to OnAvatarInstantiated
         }
 
@@ -117,23 +125,28 @@ namespace NoOutlines
         private IEnumerator WaitUntilPlayerIsLoadedToApplyTetherSettings()
         {
             // Apply settings only when player is valid and tethers exist
-            while(VRCPlayer.field_Internal_Static_VRCPlayer_0 == null)
+            while(VRCPlayer.field_Internal_Static_VRCPlayer_0 == null || avatarLoaded == false)
             {
-                yield return new WaitForSeconds(0.2f);
+                MelonLogger.Warning("Waiting for VRCPLayer_0 validity");
+                yield return new WaitForSeconds(1.0f);
             }
-            // Avatar is guaranteed to be loaded here
             ApplyTetherSettings();
         }
 
         // Call only when player avatar is loaded in
+        // Throws an error if settings applied while player avatar is unloaded 
         private void ApplyTetherSettings()
         {
             SetTetherReferences();
             if (ValidateTetherReferences())
             {
                 ApplyBeamVisibilitySettings();
+                LogDebugMsg("Tether settings applied.");
             }
-            LogDebugMsg("Tether settings applied.");
+            else
+            {
+                LogDebugMsg("Tether settings not applied, player was null");
+            }
         }
 
         private bool ValidateTetherReferences()
@@ -143,9 +156,12 @@ namespace NoOutlines
 
         private void SetTetherReferences()
         {
+            VRCPlayer player = VRCPlayer.field_Internal_Static_VRCPlayer_0;
+            if (player == null)
+                return;
             try 
             {
-                VRCPlayer player = VRCPlayer.field_Internal_Static_VRCPlayer_0; // is not null
+                player = VRCPlayer.field_Internal_Static_VRCPlayer_0; // is not null
                 leftHandTether  = GameObject.Find(player.gameObject.name + "/AnimationController/HeadAndHandIK/LeftEffector/PickupTether(Clone)/Tether/Quad").gameObject;
                 rightHandTether = GameObject.Find(player.gameObject.name + "/AnimationController/HeadAndHandIK/RightEffector/PickupTether(Clone)/Tether/Quad").gameObject;
             }
@@ -226,25 +242,31 @@ namespace NoOutlines
             MelonLogger.Msg("Hooking OnAvatarInstantiated");
             HarmonyInstance harmonyInstance = HarmonyInstance.Create("NoOutlinesMod");
             typeof(VRCPlayer).GetMethods().Where(m => m.Name.StartsWith("Method_Private_Void_GameObject_VRC_AvatarDescriptor_Boolean_") && !m.checkXref("Avatar is Ready, Initializing")).ToList()
-            .ForEach(m => harmonyInstance.Patch(m, postfix: new HarmonyMethod(typeof(NoOutlines).GetMethod("AvatarFinishedLoadingPostfix", BindingFlags.NonPublic))));
+            .ForEach(m => harmonyInstance.Patch(m, postfix: new HarmonyMethod(typeof(NoOutlines).GetMethod("AvatarFinishedLoadingPostfix", BindingFlags.NonPublic | BindingFlags.Static))));
+            MelonLogger.Msg("Hooked OnAvatarInstantiated!");
         }
 
         [HarmonyPostfix]
-        private void AvatarFinishedLoadingPostfix(VRCPlayer __instance, GameObject __0, VRC_AvatarDescriptor __1, bool __2)
+        private static void AvatarFinishedLoadingPostfix(VRCPlayer __instance, GameObject __0, VRC_AvatarDescriptor __1, bool __2)
         {
             if (__instance == null
                 || __0 == null
                 || __1 == null
                 || !__2)
-                return;
+                    return;
 
             // Not local player
             if (__instance != VRCPlayer.field_Internal_Static_VRCPlayer_0)
+            {
                 return;
+            }
 
-            LogDebugMsg("Avatar is loaded! Applying tether settings...");
-            // Apply tether settings here
-            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
+            // Flag avatar is loaded
+            MelonLogger.Msg("Player avatar is loaded!");
+            avatarLoaded = true;
+
+//            // Apply tether settings here
+//            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
         }
         #endregion
         
