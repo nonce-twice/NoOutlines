@@ -8,7 +8,7 @@ namespace NoOutlines
     {
         public const string Name = "No Outlines";
         public const string Author = "nonce-twice";
-        public const string Version = "0.1";
+        public const string Version = "0.2";
         public const string DownloadLink = "https://github.com/nonce-twice/NoOutlines";
     }
 }

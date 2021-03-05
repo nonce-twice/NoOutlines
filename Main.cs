@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
-using UIExpansionKit.API;
 using MelonLoader;
 using UnityEngine;
-using VRC;
+using VRC.SDKBase;
+using Harmony;
+using System.Linq;
+using System.Reflection;
 
 namespace NoOutlines
 {
@@ -13,6 +15,8 @@ namespace NoOutlines
         public bool Pref_DisableOutlines = false;
         public bool Pref_DisableBeam = false;
         public bool Pref_DebugOutput = false;
+
+        private bool avatarLoaded = false;
 
         private const string defaultHighlightMaterialName = "Hidden/VRChat/SelectionHighlight";
         private const string defaultHighlightShaderName = "Hidden/VRChat/SelectionHighlight";
@@ -35,6 +39,39 @@ namespace NoOutlines
             MelonPreferences.CreateEntry(Pref_CategoryName, nameof(Pref_DisableBeam),       false,  "Disable selection beams");
             MelonPreferences.CreateEntry(Pref_CategoryName, nameof(Pref_DebugOutput),       false,  "Enable debug output");
             MelonLogger.Msg("Initialized!");
+        }
+
+        // Large parts of this section comes from DynamicBonesSafety mod by Ben
+        // https://github.com/BenjaminZehowlt/DynamicBonesSafety/
+        // Thanks to loukylor for pointing me in the right direction
+        public override void VRChat_OnUiManagerInit()
+        {
+            bool hookSuccess = false;
+            MelonLogger.Msg("Attempting to hook OnAvatarInstantiated!");
+            HarmonyInstance harmonyInstance = HarmonyInstance.Create("NoOutlinesMod");
+//            typeof(VRCPlayer).GetMethods().Where(m => m.Name.StartsWith("Method_Private_Void_GameObject_VRC_AvatarDescriptor_Boolean_") && !m.checkXref("Avatar is Ready, Initializing")).ToList()
+//            .ForEach(m => harmonyInstance.Patch(m, postfix: new HarmonyMethod(typeof(NoOutlines).GetMethod("AvatarFinishedLoadingPostfix", BindingFlags.NonPublic | BindingFlags.Static))));
+            typeof(VRCPlayer).GetMethods().Where(m => m.Name.StartsWith("Method_Private_Void_GameObject_VRC_AvatarDescriptor_Boolean_") && !m.checkXref("Avatar is Ready, Initializing")).ToList()
+            .ForEach(m => harmonyInstance.Patch(m, postfix: new HarmonyMethod(typeof(NoOutlines).GetMethod("AvatarFinishedLoadingPostfix", BindingFlags.NonPublic))));
+
+        }
+
+        [HarmonyPostfix]
+        private void AvatarFinishedLoadingPostfix(VRCPlayer __instance, GameObject __0, VRC_AvatarDescriptor __1, bool __2)
+        {
+            if (__instance == null
+                || __0 == null
+                || __1 == null
+                || !__2)
+                return;
+
+            // Not local player
+            if (__instance != VRCPlayer.field_Internal_Static_VRCPlayer_0)
+                return;
+
+            LogDebugMsg("Avatar is loaded! Applying tether settings...");
+            // Apply tether settings here
+            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
         }
 
         // Skip over initial loading of (buildIndex, sceneName): [(0, "app"), (1, "ui")]
@@ -67,7 +104,7 @@ namespace NoOutlines
                 ApplyOutlineVisibilitySettings();
             }
 
-            // Wait for player to load to apply beam settings
+            // Replaced with hook to OnAvatarInstantiated
             MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
         }
 
@@ -114,20 +151,25 @@ namespace NoOutlines
 
         private IEnumerator WaitUntilPlayerIsLoadedToApplyTetherSettings()
         {
-            // Wait until player ref is valid
+            // Apply settings only when player is valid and tethers exist
             while(VRCPlayer.field_Internal_Static_VRCPlayer_0 == null)
             {
-                yield return null;
+                yield return new WaitForSeconds(0.2f);
             }
-            // This is a hack
-            // Wait more because you're probably still loading in
-            yield return new WaitForSeconds(10.0f);
-            // Apply settings only when player is valid and tethers exist
+            // Avatar is guaranteed to be loaded here
+            avatarLoaded = true;
+            ApplyTetherSettings();
+        }
+
+        // Call only when player avatar is loaded in
+        private void ApplyTetherSettings()
+        {
             SetTetherReferences();
             if (ValidateTetherReferences())
             {
                 ApplyBeamVisibilitySettings();
             }
+            LogDebugMsg("Tether settings applied.");
         }
 
         private bool ValidateTetherReferences()
@@ -193,6 +235,8 @@ namespace NoOutlines
             highlightsObject = null;
             leftHandTether = null;
             rightHandTether = null;
+
+            avatarLoaded = false; 
 
             //   Not necessary to clear these fields since they won't be changing
             // highlightMaterial= highlightsObject.field_Protected_Material_0;
