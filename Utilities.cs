@@ -11,11 +11,12 @@ using Harmony;
 
 namespace NoOutlines
 {
-    // Large parts of this class comes from DynamicBonesSafety mod by Ben
+    // All of this class comes from DynamicBonesSafety mod by Ben
     // https://github.com/BenjaminZehowlt/DynamicBonesSafety/
     // Thanks to loukylor for pointing me in the right direction
     static class Utilities
     {
+
             public static bool checkXref(this MethodBase m, string match)
             {
                 try
