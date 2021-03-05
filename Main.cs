@@ -76,7 +76,7 @@ namespace NoOutlines
             if (Pref_DisableOutlines)
             {
                 LogDebugMsg("Disabling outlines.");
-                highlightsObject.field_Protected_Shader_0 = UnityEngine.Shader.Find("Sprites/Mask");
+                highlightsObject.field_Protected_Shader_0 = UnityEngine.Shader.Find(replacementHighlightShaderName);
             }
             else
             {
