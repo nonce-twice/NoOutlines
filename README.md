@@ -15,10 +15,11 @@ Pref_DebugOutput     = false    # Enables debug output in the MelonLoader consol
 
 ### Dependencies
 UIExpansionKit by Knah [link](https://github.com/knah/VRCMods)  
+Newtonsoft.Json
 MelonLoader 0.3.0
 
 ### Build Info
-Place Assembly-CSharp.dll in Libs/  
+Place .dll files from MelonLoader/Managed in Libs/  
 UIExpansionKit is on the same folder level 
 
 #### Example Folder Hierarchy
