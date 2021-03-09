@@ -17,6 +17,7 @@ namespace NoOutlines
         public bool Pref_DebugOutput = false;
 
         private static bool avatarLoaded = false;
+        private static bool quitting = true;
 
         private const string defaultHighlightMaterialName = "Hidden/VRChat/SelectionHighlight";
         private const string defaultHighlightShaderName = "Hidden/VRChat/SelectionHighlight";
@@ -31,6 +32,11 @@ namespace NoOutlines
         // VRCPlayer[Local] ... /AnimationController/HeadAndHandIK/RightEffector/PickupTether(Clone)
         private GameObject leftHandTether = null;
         private GameObject rightHandTether = null;
+
+        public override void OnApplicationQuit()
+        {
+            quitting = true;
+        }
 
         public override void OnApplicationStart()
         {
@@ -65,6 +71,10 @@ namespace NoOutlines
 
         private void ApplyAllSettings()
         {
+            // avoid NDE on ungraceful exit
+            if (quitting)
+                return;
+
             LogDebugMsg("Applying all settings");
             UpdatePreferences();
             ClearAllReferences(); // might be unnecessary to clear first
@@ -127,7 +137,7 @@ namespace NoOutlines
             // Apply settings only when player is valid and tethers exist
             while(VRCPlayer.field_Internal_Static_VRCPlayer_0 == null || avatarLoaded == false)
             {
-                MelonLogger.Warning("Waiting for VRCPLayer_0 validity");
+//                MelonLogger.Warning("Waiting for VRCPlayer_0 validity");
                 yield return new WaitForSeconds(1.0f);
             }
             ApplyTetherSettings();
@@ -154,11 +164,11 @@ namespace NoOutlines
             return (leftHandTether != null  && rightHandTether != null);
         }
 
-        private void SetTetherReferences()
+        private bool SetTetherReferences()
         {
             VRCPlayer player = VRCPlayer.field_Internal_Static_VRCPlayer_0;
             if (player == null)
-                return;
+                return false;
             try 
             {
                 player = VRCPlayer.field_Internal_Static_VRCPlayer_0; // is not null
@@ -167,19 +177,10 @@ namespace NoOutlines
             }
             catch(Exception e)
             {
+                MelonLogger.Error("Error finding tether references!");
                 MelonLogger.Error(e.ToString());
             }
-            finally
-            {
-                if(ValidateTetherReferences())
-                {
-                    LogDebugMsg("Found tethers: " + leftHandTether.name + "," + rightHandTether.name);
-                }
-                else
-                {
-                    MelonLogger.Error("Error finding tether references!");
-                }
-            }
+            return ValidateTetherReferences();
         }
         private void SetHighlightsFXReferences()
         {
@@ -261,12 +262,22 @@ namespace NoOutlines
                 return;
             }
 
-            // Flag avatar is loaded
-            MelonLogger.Msg("Player avatar is loaded!");
-            avatarLoaded = true;
+            // __2 is true if avatar is loaded
+            if( !__2)
+            {
+                avatarLoaded = false;
+                return;
+            }
 
-//            // Apply tether settings here
-//            MelonCoroutines.Start(WaitUntilPlayerIsLoadedToApplyTetherSettings());
+            VRC.Core.APIUser apiUser = __instance.field_Private_Player_0.field_Private_APIUser_0;
+            if(apiUser == null)
+            {
+                return;
+            }
+            
+            // Flag avatar is loaded
+//            MelonLogger.Msg("Player avatar is loaded!");
+            avatarLoaded = true;
         }
         #endregion
         
