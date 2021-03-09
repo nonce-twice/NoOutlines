@@ -73,29 +73,14 @@ namespace NoOutlines
 
         private void ApplyOutlineVisibilitySettings()
         {
-            if (Pref_DisableOutlines)
-            {
-                LogDebugMsg("Disabling outlines.");
-                highlightsObject.field_Protected_Shader_0 = UnityEngine.Shader.Find("Sprites/Mask");
-            }
-            else
-            {
-                LogDebugMsg("Enabling outlines.");
-                highlightsObject.field_Protected_Shader_0 = UnityEngine.Shader.Find(defaultHighlightShaderName);
-            }
+
+            LogDebugMsg(Pref_DisableOutlines ? "Disabling outlines." : "Enabling outlines.");
+            highlightsObject.field_Protected_Shader_0 = UnityEngine.Shader.Find(Pref_DisableOutlines ? "Sprites/Mask" : defaultHighlightShaderName);
         }
 
         private void ApplyBeamVisibilitySettings()
         {
-            // Get local player transform
-            if(Pref_DisableBeam)
-            {
-                LogDebugMsg("Disabling beams.");
-            }
-            else
-            {
-                LogDebugMsg("Enabling beams.");
-            }
+            LogDebugMsg(Pref_DisableBeam ? "Disabling beams." : "Enabling beams.");
             leftHandTether.SetActive(!Pref_DisableBeam);
             rightHandTether.SetActive(!Pref_DisableBeam);
         }
